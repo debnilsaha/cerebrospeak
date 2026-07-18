@@ -61,7 +61,7 @@ async def predict_grid(req: GridPredictionRequest) -> GridPredictionResponse:
             tool_description="Return the predicted words for the child's grid.",
             input_schema=tool_schema,
             model=FAST_MODEL,
-            max_tokens=1024,
+            max_tokens=768,
             temperature=0.0,
         )
 
@@ -74,7 +74,6 @@ async def predict_grid(req: GridPredictionRequest) -> GridPredictionResponse:
                     category=item.get("category", "social"),
                     urgent=bool(item.get("urgent", False)),
                     rank=i + 1,
-                    reason=str(item.get("reason", ""))[:120],
                 )
                 if pw.word:
                     words.append(pw)

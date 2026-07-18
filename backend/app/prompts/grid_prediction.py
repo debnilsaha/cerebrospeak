@@ -74,10 +74,6 @@ def build_tool_schema(grid_size: int) -> dict:
                             "type": "boolean",
                             "description": "True only for urgent needs.",
                         },
-                        "reason": {
-                            "type": "string",
-                            "description": "Very brief reason this word is relevant.",
-                        },
                     },
                     "required": ["word", "category", "urgent"],
                 },

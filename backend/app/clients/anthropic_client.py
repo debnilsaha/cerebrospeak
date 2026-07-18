@@ -52,7 +52,13 @@ class AnthropicClient:
                     model=model,
                     max_tokens=max_tokens,
                     temperature=temperature,
-                    system=system,
+                    system=[
+                        {
+                            "type": "text",
+                            "text": system,
+                            "cache_control": {"type": "ephemeral"},
+                        }
+                    ],
                     messages=[{"role": "user", "content": user}],
                 )
             except APIError as exc:
@@ -87,13 +93,20 @@ class AnthropicClient:
                     model=model,
                     max_tokens=max_tokens,
                     temperature=temperature,
-                    system=system,
+                    system=[
+                        {
+                            "type": "text",
+                            "text": system,
+                            "cache_control": {"type": "ephemeral"},
+                        }
+                    ],
                     messages=[{"role": "user", "content": user}],
                     tools=[
                         {
                             "name": tool_name,
                             "description": tool_description,
                             "input_schema": input_schema,
+                            "cache_control": {"type": "ephemeral"},
                         }
                     ],
                     tool_choice={"type": "tool", "name": tool_name},
