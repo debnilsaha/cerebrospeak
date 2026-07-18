@@ -52,7 +52,7 @@ class GridPredictionResponse(BaseModel):
     model: str = ""
     latency_ms: float = 0.0
 
-    
+
 # ─────────────────────────── Sentence composition ───────────────────────────
 class SentenceComposeRequest(BaseModel):
     """Request to synthesize tapped keywords into a natural sentence."""
@@ -117,3 +117,19 @@ class MemoryExtractResponse(BaseModel):
     request_id: str | None = None
     model: str = ""
     latency_ms: float = 0.0
+
+
+# ─────────────────────────── Speech (STT) ───────────────────────────
+class TranscriptionResponse(BaseModel):
+    """Result of transcribing caregiver audio."""
+
+    text: str
+    request_id: str | None = None
+    latency_ms: float = 0.0
+
+
+# ─────────────────────────── Speech (TTS) ───────────────────────────
+class SynthesizeRequest(BaseModel):
+    """Request to synthesize text into speech audio."""
+
+    text: str = Field(..., min_length=1, max_length=500)

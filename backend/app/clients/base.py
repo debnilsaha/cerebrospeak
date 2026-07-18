@@ -10,7 +10,7 @@ from typing import TypeVar
 
 from tenacity import (
     AsyncRetrying,
-    retry_if_exception_type,
+    retry_if_exception,
     stop_after_attempt,
     wait_exponential_jitter,
 )
@@ -22,8 +22,15 @@ logger = get_logger(__name__)
 
 T = TypeVar("T")
 
-# Exceptions that are worth retrying (transient network/provider issues).
-RETRYABLE_EXCEPTIONS = (ProviderError,)
+
+def _is_retryable(exc: BaseException) -> bool:
+    """Retry transient ProviderErrors, but never fail-fast fatal ones."""
+    # Imported lazily to avoid a circular import at module load time.
+    from app.clients.elevenlabs_client import FatalProviderError
+
+    if isinstance(exc, FatalProviderError):
+        return False
+    return isinstance(exc, ProviderError)
 
 
 async def call_with_resilience(
@@ -47,7 +54,7 @@ async def call_with_resilience(
         async for attempt in AsyncRetrying(
             stop=stop_after_attempt(max_attempts),
             wait=wait_exponential_jitter(initial=0.5, max=8.0),
-            retry=retry_if_exception_type(RETRYABLE_EXCEPTIONS),
+            retry=retry_if_exception(_is_retryable),
             reraise=True,
         ):
             with attempt:
