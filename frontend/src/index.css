@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+/* ─────────────────────────── CerebroSpeak Design Tokens ─────────────────────────── */
+/* Claymorphism (primary) + Bento Grid (layout) + Minimalist discipline */
+
+:root {
+  /* Canvas & clay surfaces */
+  --bg: #F3F1FB;                 /* soft lavender-white, glare-friendly */
+  --clay-surface: #FFFFFF;
+  --clay-radius: 28px;
+  --clay-shadow: 0 18px 32px rgba(99, 91, 255, 0.14),
+                 inset -8px -8px 16px rgba(99, 91, 255, 0.06),
+                 inset 8px 8px 16px rgba(255, 255, 255, 0.95);
+  --clay-pressed: inset 6px 6px 12px rgba(99, 91, 255, 0.16),
+                  inset -6px -6px 12px rgba(255, 255, 255, 0.9);
+
+  /* Fitzgerald Key colors — WCAG-checked against white clay */
+  --fk-pronoun:  #F5B700;  /* yellow  */
+  --fk-verb:     #1B9E4B;  /* green   */
+  --fk-noun:     #E8730C;  /* orange  */
+  --fk-adjective:#1976D2;  /* blue    */
+  --fk-social:   #C2185B;  /* pink    */
+  --fk-question: #7B1FA2;  /* purple  */
+  --fk-urgent:   #D32F2F;  /* red     */
+
+  /* Typography */
+  --font-ui: "Nunito", "Segoe UI", system-ui, sans-serif;
+  --font-chat: "Atkinson Hyperlegible", "Segoe UI", sans-serif;
+
+  /* Sizing & motion */
+  --tap-min: 84px;
+  --motion: 180ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+body {
+  background: var(--bg);
+  font-family: var(--font-ui);
+  color: #2A2A3C;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
