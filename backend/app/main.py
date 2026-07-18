@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routers import health, prediction
+from app.api.routers import health, memory, prediction, sentence
 from app.core.config import get_settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import configure_logging, get_logger
@@ -55,6 +55,8 @@ def create_app() -> FastAPI:
     # Routers.
     app.include_router(health.router)
     app.include_router(prediction.router)
+    app.include_router(sentence.router)
+    app.include_router(memory.router)
 
     logger.info("app_configured", cors_origins=settings.cors_origins_list)
     return app

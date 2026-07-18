@@ -110,3 +110,51 @@ async def predict_grid(req: GridPredictionRequest) -> GridPredictionResponse:
             model="fallback",
             latency_ms=latency_ms,
         )
+
+    
+# ─────────────────────────── Quick replies ───────────────────────────
+from app.models.schemas import QuickRepliesRequest, QuickRepliesResponse  # noqa: E402
+from app.prompts import quick_replies as qr_prompt  # noqa: E402
+
+_QUICK_REPLY_FALLBACK = ["Yes, please.", "No, thank you.", "I don't know."]
+
+
+async def quick_replies(req: QuickRepliesRequest) -> QuickRepliesResponse:
+    """Generate 3 ready-made replies to the caregiver's utterance."""
+    start = time.perf_counter()
+    client = get_anthropic_client()
+
+    try:
+        raw = await client.complete_structured(
+            system=qr_prompt.build_system_prompt(),
+            user=qr_prompt.build_user_prompt(req.caregiver_utterance),
+            tool_name="return_replies",
+            tool_description="Return 3 ready-to-speak replies for the child.",
+            input_schema=qr_prompt.build_tool_schema(),
+            model=FAST_MODEL,
+            max_tokens=256,
+            temperature=0.7,
+        )
+        replies = [str(r).strip() for r in raw.get("replies", []) if str(r).strip()]
+        if not replies:
+            raise ValueError("No replies returned.")
+        model = FAST_MODEL
+    except Exception as exc:
+        logger.error(
+            "quick_replies_fallback",
+            error_type=type(exc).__name__,
+            error=str(exc),
+            exc_info=exc,
+        )
+        replies = _QUICK_REPLY_FALLBACK
+        model = "fallback"
+
+    latency_ms = round((time.perf_counter() - start) * 1000, 2)
+    logger.info(
+        "quick_replies_generated",
+        count=len(replies),
+        latency_ms=latency_ms,
+        prompt_version=qr_prompt.PROMPT_VERSION,
+        model=model,
+    )
+    return QuickRepliesResponse(replies=replies[:3], model=model, latency_ms=latency_ms)

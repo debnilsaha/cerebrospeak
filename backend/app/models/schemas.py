@@ -51,3 +51,69 @@ class GridPredictionResponse(BaseModel):
     request_id: str | None = None
     model: str = ""
     latency_ms: float = 0.0
+
+    
+# ─────────────────────────── Sentence composition ───────────────────────────
+class SentenceComposeRequest(BaseModel):
+    """Request to synthesize tapped keywords into a natural sentence."""
+
+    session_id: str | None = None
+    tokens: list[str] = Field(..., min_length=1)
+    caregiver_utterance: str = Field(default="", max_length=1000)
+
+
+class SentenceComposeResponse(BaseModel):
+    """The composed first-person sentence."""
+
+    sentence: str
+    request_id: str | None = None
+    model: str = ""
+    latency_ms: float = 0.0
+
+
+# ─────────────────────────── Quick replies ───────────────────────────
+class QuickRepliesRequest(BaseModel):
+    """Request for ready-made full-sentence replies to the caregiver."""
+
+    session_id: str | None = None
+    caregiver_utterance: str = Field(..., min_length=1, max_length=1000)
+
+
+class QuickRepliesResponse(BaseModel):
+    """A short list of ready-made replies the child can tap."""
+
+    replies: list[str]
+    request_id: str | None = None
+    model: str = ""
+    latency_ms: float = 0.0
+
+
+# ─────────────────────────── Memory extraction ───────────────────────────
+class MemoryFactType(str, Enum):
+    PERMANENT = "permanent"
+    TEMPORARY = "temporary"
+
+
+class ExtractedFact(BaseModel):
+    """A single fact extracted from a conversation turn."""
+
+    key: str = Field(..., min_length=1, max_length=60)
+    value: str = Field(..., min_length=1, max_length=200)
+    type: MemoryFactType
+
+
+class MemoryExtractRequest(BaseModel):
+    """Request to extract memory facts from a caregiver+child exchange."""
+
+    session_id: str | None = None
+    caregiver_text: str = Field(default="", max_length=1000)
+    child_text: str = Field(default="", max_length=1000)
+
+
+class MemoryExtractResponse(BaseModel):
+    """The facts extracted (and stored) from the exchange."""
+
+    facts: list[ExtractedFact]
+    request_id: str | None = None
+    model: str = ""
+    latency_ms: float = 0.0
