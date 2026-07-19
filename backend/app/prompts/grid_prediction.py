@@ -37,18 +37,26 @@ def build_system_prompt() -> str:
     )
 
 
-def build_user_prompt(req: GridPredictionRequest) -> str:
+def build_user_prompt(req: GridPredictionRequest, known_facts: str = "") -> str:
     draft = " ".join(req.current_tokens) if req.current_tokens else "(nothing yet)"
     caregiver = req.caregiver_utterance or "(no caregiver speech)"
     excluded = ", ".join(req.exclude_words) if req.exclude_words else "(none)"
     tod = req.time_of_day or "unknown"
 
+    facts_block = (
+        f"What we know about this child:\n{known_facts}\n\n"
+        if known_facts.strip()
+        else ""
+    )
+
     return (
+        f"{facts_block}"
         f"Caregiver just said: \"{caregiver}\"\n"
         f"Child's sentence so far: \"{draft}\"\n"
         f"Time of day: {tod}\n"
         f"Excluded words (do NOT use): {excluded}\n\n"
-        f"Predict the {req.grid_size} most useful next words for the child."
+        f"Predict the {req.grid_size} most useful next words for the child. "
+        f"When relevant, favor words that match what we know about the child."
     )
 
 

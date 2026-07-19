@@ -133,3 +133,22 @@ class SynthesizeRequest(BaseModel):
     """Request to synthesize text into speech audio."""
 
     text: str = Field(..., min_length=1, max_length=500)
+
+
+# ─────────────────────────── Word finder (Say Anything) ───────────────────────────
+class FindWordsRequest(BaseModel):
+    """Request to find word-cells matching a hint or a category the child wants."""
+
+    session_id: str | None = None
+    query: str = Field(..., min_length=1, max_length=100)
+    caregiver_utterance: str = Field(default="", max_length=1000)
+    grid_size: int = Field(default=12, ge=4, le=20)
+
+
+class FindWordsResponse(BaseModel):
+    """Matching word-cells the child can tap."""
+
+    symbols: list[PredictedWord]
+    request_id: str | None = None
+    model: str = ""
+    latency_ms: float = 0.0

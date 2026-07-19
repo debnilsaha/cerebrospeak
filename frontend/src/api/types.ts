@@ -83,3 +83,17 @@ export interface MemoryExtractResponse {
   model: string;
   latency_ms: number;
 }
+
+export interface FindWordsRequest {
+  session_id?: string | null;
+  query: string;
+  caregiver_utterance: string;
+  grid_size: number;
+}
+
+export interface FindWordsResponse {
+  symbols: PredictedWord[];
+  request_id?: string | null;
+  model: string;
+  latency_ms: number;
+}

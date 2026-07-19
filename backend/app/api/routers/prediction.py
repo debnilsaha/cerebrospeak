@@ -1,9 +1,11 @@
-"""Prediction endpoints (grid prediction + quick replies)."""
+"""Prediction endpoints (grid prediction + quick replies + word finder)."""
 
 from fastapi import APIRouter, Request
 
 from app.core.logging import get_logger
 from app.models.schemas import (
+    FindWordsRequest,
+    FindWordsResponse,
     GridPredictionRequest,
     GridPredictionResponse,
     QuickRepliesRequest,
@@ -27,5 +29,13 @@ async def predict_grid(payload: GridPredictionRequest, request: Request) -> Grid
 async def quick_replies(payload: QuickRepliesRequest, request: Request) -> QuickRepliesResponse:
     """Generate 3 ready-made replies to the caregiver's utterance."""
     result = await prediction_service.quick_replies(payload)
+    result.request_id = getattr(request.state, "request_id", None)
+    return result
+
+
+@router.post("/find-words", response_model=FindWordsResponse)
+async def find_words(payload: FindWordsRequest, request: Request) -> FindWordsResponse:
+    """Find word-cells matching a hint or category (the 'Say Anything' path)."""
+    result = await prediction_service.find_words(payload)
     result.request_id = getattr(request.state, "request_id", None)
     return result

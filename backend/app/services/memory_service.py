@@ -102,3 +102,18 @@ async def extract_facts(req: MemoryExtractRequest) -> MemoryExtractResponse:
         model=model,
     )
     return MemoryExtractResponse(facts=facts, model=model, latency_ms=latency_ms)
+
+def get_facts_for_prompt() -> str:
+    """Return a compact text summary of known facts, for injection into prompts.
+
+    Returns an empty string if nothing is known yet.
+    """
+    _purge_expired()
+    lines: list[str] = []
+
+    for key, value in _permanent_store.items():
+        lines.append(f"- {key.replace('_', ' ')}: {value}")
+    for key, data in _temporary_store.items():
+        lines.append(f"- {key.replace('_', ' ')}: {data['value']} (recent)")
+
+    return "\n".join(lines)

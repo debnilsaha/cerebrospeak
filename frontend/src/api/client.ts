@@ -1,6 +1,8 @@
 // Typed API client. All requests go through Vite's /api proxy to the backend.
 
 import type {
+  FindWordsRequest,
+  FindWordsResponse,
   GridPredictionRequest,
   GridPredictionResponse,
   MemoryExtractRequest,
@@ -61,6 +63,10 @@ export const api = {
 
   quickReplies(req: QuickRepliesRequest): Promise<QuickRepliesResponse> {
     return postJson("/predict/quick-replies", req);
+  },
+
+  findWords(req: FindWordsRequest): Promise<FindWordsResponse> {
+    return postJson("/predict/find-words", req);
   },
 
   // Sentence

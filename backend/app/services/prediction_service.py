@@ -18,6 +18,7 @@ from app.models.schemas import (
     WordCategory,
 )
 from app.prompts import grid_prediction as prompt
+from app.services import memory_service
 
 logger = get_logger(__name__)
 
@@ -50,7 +51,8 @@ async def predict_grid(req: GridPredictionRequest) -> GridPredictionResponse:
     client = get_anthropic_client()
 
     system_prompt = prompt.build_system_prompt()
-    user_prompt = prompt.build_user_prompt(req)
+    known_facts = memory_service.get_facts_for_prompt()
+    user_prompt = prompt.build_user_prompt(req, known_facts=known_facts)
     tool_schema = prompt.build_tool_schema(req.grid_size)
 
     try:
@@ -157,3 +159,64 @@ async def quick_replies(req: QuickRepliesRequest) -> QuickRepliesResponse:
         model=model,
     )
     return QuickRepliesResponse(replies=replies[:3], model=model, latency_ms=latency_ms)
+
+
+# ─────────────────────────── Word finder (Say Anything) ───────────────────────────
+from app.models.schemas import FindWordsRequest, FindWordsResponse  # noqa: E402
+from app.prompts import word_finder as wf_prompt  # noqa: E402
+
+
+async def find_words(req: FindWordsRequest) -> FindWordsResponse:
+    """Find word-cells matching the child's hint/category."""
+    start = time.perf_counter()
+    client = get_anthropic_client()
+
+    try:
+        raw = await client.complete_structured(
+            system=wf_prompt.build_system_prompt(),
+            user=wf_prompt.build_user_prompt(
+                req.query, req.caregiver_utterance, req.grid_size
+            ),
+            tool_name="return_words",
+            tool_description="Return the matching words for the child.",
+            input_schema=wf_prompt.build_tool_schema(req.grid_size),
+            model=FAST_MODEL,
+            max_tokens=768,
+            temperature=0.0,
+        )
+        words: list[PredictedWord] = []
+        for i, item in enumerate(raw.get("words", [])):
+            try:
+                pw = PredictedWord(
+                    word=str(item.get("word", "")).strip(),
+                    category=item.get("category", "noun"),
+                    urgent=bool(item.get("urgent", False)),
+                    rank=i + 1,
+                )
+                if pw.word:
+                    words.append(pw)
+            except PydanticValidationError:
+                continue
+        if not words:
+            raise ValueError("No matching words returned.")
+        model = FAST_MODEL
+    except Exception as exc:
+        logger.error(
+            "find_words_failed",
+            error_type=type(exc).__name__,
+            error=str(exc),
+            exc_info=exc,
+        )
+        words = _fallback_grid(req.grid_size)
+        model = "fallback"
+
+    latency_ms = round((time.perf_counter() - start) * 1000, 2)
+    logger.info(
+        "words_found",
+        query=req.query,
+        count=len(words),
+        latency_ms=latency_ms,
+        prompt_version=wf_prompt.PROMPT_VERSION,
+        model=model,
+    )
+    return FindWordsResponse(symbols=words[: req.grid_size], model=model, latency_ms=latency_ms)

@@ -10,6 +10,7 @@ import { CaregiverInput } from "./CaregiverInput";
 import { QuickReplies } from "./QuickReplies";
 import { ChatPanel } from "../chat/ChatPanel";
 import type { ChatMessage } from "../../stores/sessionStore";
+import { SayAnything } from "./SayAnything";
 import { newId } from "../../stores/sessionStore";
 import { ClayButton } from "../../components/ui/ClayButton";
 
@@ -43,6 +44,7 @@ export function SessionScreen({ onEnd }: { onEnd: () => void }) {
   const { speak, speaking } = useTTS();
   const { prefetch, getCached, clearCache } = useGridPrefetch();
   const [spokenSentence, setSpokenSentence] = useState("");
+  const [sayAnythingOpen, setSayAnythingOpen] = useState(false);
 
   // Caregiver spoke (or typed): refresh grid + quick replies based on it.
   async function handleCaregiverText(text: string) {
@@ -130,6 +132,7 @@ export function SessionScreen({ onEnd }: { onEnd: () => void }) {
       });
       setSpokenSentence(res.sentence);
       addMessage({ id: newId(), sender: "child", text: res.sentence });
+      learnFromExchange(res.sentence);
       await speak(res.sentence);
       clearSentence();
       resetGrid();
@@ -146,12 +149,24 @@ export function SessionScreen({ onEnd }: { onEnd: () => void }) {
     if (busy) return;
     setSpokenSentence(reply);
     addMessage({ id: newId(), sender: "child", text: reply });
+    learnFromExchange(reply);
     await speak(reply);
   }
 
   async function handleReplay(msg: ChatMessage) {
     await speak(msg.text);
   }   
+
+  // Quietly learn facts from the exchange (fire-and-forget; never blocks UI).
+  function learnFromExchange(childText: string) {
+    if (!childText.trim()) return;
+    api
+      .extractMemory({
+        caregiver_text: lastCaregiverText,
+        child_text: childText,
+      })
+      .catch((err) => console.error("Memory extraction failed:", err));
+  }  
 
   function handleClear() {
     clearSentence();
@@ -225,6 +240,29 @@ export function SessionScreen({ onEnd }: { onEnd: () => void }) {
         onClear={handleClear}
         onSpeak={handleSpeak}
         disabled={busy}
+      />
+
+      {/* Say Anything trigger */}
+      <div className="flex justify-center">
+        <ClayButton
+          onClick={() => setSayAnythingOpen(true)}
+          disabled={busy}
+          ariaLabel="Open Say Anything to find any word"
+          style={{ padding: "14px 28px", fontSize: "1.05rem", color: "#7B1FA2" }}
+        >
+          ➕ Say Anything
+        </ClayButton>
+      </div>
+
+      {/* Say Anything panel */}
+      <SayAnything
+        open={sayAnythingOpen}
+        caregiverText={lastCaregiverText}
+        onPickWord={(word) => {
+          addToken(word);
+          addExcluded([word]);
+        }}
+        onClose={() => setSayAnythingOpen(false)}
       />
 
       {/* Word grid */}
