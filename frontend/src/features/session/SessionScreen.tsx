@@ -13,6 +13,9 @@ import type { ChatMessage } from "../../stores/sessionStore";
 import { SayAnything } from "./SayAnything";
 import { newId } from "../../stores/sessionStore";
 import { ClayButton } from "../../components/ui/ClayButton";
+import { useEffect } from "react";
+import { useSettingsStore } from "../../stores/settingsStore";
+import { useSwitchScanning } from "../../hooks/useSwitchScanning";
 
 function timeOfDay(): string {
   const h = new Date().getHours();
@@ -45,6 +48,32 @@ export function SessionScreen({ onEnd }: { onEnd: () => void }) {
   const { prefetch, getCached, clearCache } = useGridPrefetch();
   const [spokenSentence, setSpokenSentence] = useState("");
   const [sayAnythingOpen, setSayAnythingOpen] = useState(false);
+  const scanningEnabled = useSettingsStore((s) => s.scanningEnabled);
+  const scanSpeedMs = useSettingsStore((s) => s.scanSpeedMs);
+
+  const { highlightedIndices, activate } = useSwitchScanning({
+    enabled: scanningEnabled && !busy && !sayAnythingOpen,
+    itemCount: activeGrid.length,
+    columns: 4,
+    speedMs: scanSpeedMs,
+    onSelect: (index) => {
+      const word = activeGrid[index];
+      if (word) handleTapWord(word.word);
+    },
+  });  
+
+  // The single switch: spacebar activates the current scan step.
+  useEffect(() => {
+    if (!scanningEnabled) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.code === "Space") {
+        e.preventDefault();
+        activate();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [scanningEnabled, activate]);  
 
   // Caregiver spoke (or typed): refresh grid + quick replies based on it.
   async function handleCaregiverText(text: string) {
@@ -182,13 +211,27 @@ export function SessionScreen({ onEnd }: { onEnd: () => void }) {
         <h1 className="text-2xl font-extrabold" style={{ color: "#635BFF" }}>
           CerebroSpeak
         </h1>
-        <ClayButton
-          onClick={onEnd}
-          ariaLabel="End session"
-          style={{ padding: "10px 18px", fontSize: "0.95rem", color: "#D32F2F" }}
-        >
-          End
-        </ClayButton>
+        <div className="flex items-center gap-2">
+          <ClayButton
+            onClick={() => useSettingsStore.getState().setScanningEnabled(!scanningEnabled)}
+            ariaLabel="Toggle switch scanning"
+            style={{
+              padding: "10px 16px",
+              fontSize: "0.9rem",
+              color: scanningEnabled ? "#7B1FA2" : "#8A8AA0",
+              background: scanningEnabled ? "#F3E5F5" : "var(--clay-surface)",
+            }}
+          >
+            {scanningEnabled ? "⊙ Scanning ON" : "⊙ Scanning"}
+          </ClayButton>
+          <ClayButton
+            onClick={onEnd}
+            ariaLabel="End session"
+            style={{ padding: "10px 18px", fontSize: "0.95rem", color: "#D32F2F" }}
+          >
+            End
+          </ClayButton>
+        </div>
       </div>
 
       {/* Chat history */}
@@ -267,7 +310,12 @@ export function SessionScreen({ onEnd }: { onEnd: () => void }) {
 
       {/* Word grid */}
       <div style={{ position: "relative" }}>
-        <WordGrid words={activeGrid} onTapWord={handleTapWord} disabled={busy} />
+        <WordGrid
+          words={activeGrid}
+          onTapWord={handleTapWord}
+          disabled={busy}
+          highlightedIndices={highlightedIndices}
+        />
         {busy && (
           <div
             style={{
@@ -283,6 +331,30 @@ export function SessionScreen({ onEnd }: { onEnd: () => void }) {
           </div>
         )}
       </div>
+
+      {/* Giant switch button for tap-anywhere activation */}
+      {scanningEnabled && (
+        <button
+          type="button"
+          onClick={activate}
+          aria-label="Select"
+          style={{
+            width: "100%",
+            minHeight: "90px",
+            marginTop: "8px",
+            borderRadius: "var(--clay-radius)",
+            border: "none",
+            background: "#7B1FA2",
+            color: "white",
+            fontSize: "1.6rem",
+            fontWeight: 800,
+            cursor: "pointer",
+            boxShadow: "var(--clay-shadow)",
+          }}
+        >
+          ⊙ SELECT (or press Spacebar)
+        </button>
+      )}
     </div>
   );
 }

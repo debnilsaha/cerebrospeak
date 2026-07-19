@@ -16,9 +16,10 @@ interface WordCellProps {
   word: PredictedWord;
   onTap: (word: string) => void;
   disabled?: boolean;
+  highlighted?: boolean;
 }
 
-export function WordCell({ word, onTap, disabled = false }: WordCellProps) {
+export function WordCell({ word, onTap, disabled = false, highlighted = false }: WordCellProps) {
   const ringColor = CATEGORY_COLOR[word.category] ?? "var(--fk-social)";
   const isUrgent = word.urgent;
 
@@ -49,8 +50,13 @@ export function WordCell({ word, onTap, disabled = false }: WordCellProps) {
         minHeight: "var(--tap-min)",
         borderRadius: "var(--clay-radius)",
         background: isUrgent ? "#FFEBEE" : "var(--clay-surface)",
-        boxShadow: "var(--clay-shadow)",
+        boxShadow: highlighted
+          ? "0 0 0 6px rgba(123, 31, 162, 0.55), var(--clay-shadow)"
+          : "var(--clay-shadow)",
         border: `5px solid ${ringColor}`,
+        outline: highlighted ? "3px solid #7B1FA2" : "none",
+        outlineOffset: highlighted ? "2px" : "0",
+        transform: highlighted ? "scale(1.05)" : "none",
         cursor: disabled ? "not-allowed" : "pointer",
         opacity: disabled ? 0.5 : 1,
         padding: "12px",
