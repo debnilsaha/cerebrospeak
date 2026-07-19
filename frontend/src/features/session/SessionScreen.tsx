@@ -8,6 +8,9 @@ import { WordGrid } from "../grid/WordGrid";
 import { SentenceBar } from "../grid/SentenceBar";
 import { CaregiverInput } from "./CaregiverInput";
 import { QuickReplies } from "./QuickReplies";
+import { ChatPanel } from "../chat/ChatPanel";
+import type { ChatMessage } from "../../stores/sessionStore";
+import { newId } from "../../stores/sessionStore";
 import { ClayButton } from "../../components/ui/ClayButton";
 
 function timeOfDay(): string {
@@ -19,6 +22,8 @@ function timeOfDay(): string {
 
 export function SessionScreen({ onEnd }: { onEnd: () => void }) {
   const {
+    chatHistory,
+    addMessage,
     activeGrid,
     sentenceTokens,
     excludedWords,
@@ -43,6 +48,7 @@ export function SessionScreen({ onEnd }: { onEnd: () => void }) {
   async function handleCaregiverText(text: string) {
     if (busy) return;
     setLastCaregiverText(text);
+    addMessage({ id: newId(), sender: "caregiver", text });
     clearSentence();
     clearCache();
     setSpokenSentence("");
@@ -123,7 +129,11 @@ export function SessionScreen({ onEnd }: { onEnd: () => void }) {
         caregiver_utterance: lastCaregiverText,
       });
       setSpokenSentence(res.sentence);
+      addMessage({ id: newId(), sender: "child", text: res.sentence });
       await speak(res.sentence);
+      clearSentence();
+      resetGrid();
+      clearCache();
     } catch (err) {
       console.error("Compose/speak failed:", err);
     } finally {
@@ -135,8 +145,13 @@ export function SessionScreen({ onEnd }: { onEnd: () => void }) {
   async function handleQuickReply(reply: string) {
     if (busy) return;
     setSpokenSentence(reply);
+    addMessage({ id: newId(), sender: "child", text: reply });
     await speak(reply);
   }
+
+  async function handleReplay(msg: ChatMessage) {
+    await speak(msg.text);
+  }   
 
   function handleClear() {
     clearSentence();
@@ -160,6 +175,9 @@ export function SessionScreen({ onEnd }: { onEnd: () => void }) {
           End
         </ClayButton>
       </div>
+
+      {/* Chat history */}
+      <ChatPanel messages={chatHistory} onReplay={handleReplay} />
 
       {/* Caregiver input */}
       <CaregiverInput onCaregiverText={handleCaregiverText} disabled={busy} />
