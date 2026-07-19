@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useSessionStore } from "../../stores/sessionStore";
 import { useTTS } from "../../hooks/useTTS";
+import { useGridPrefetch } from "../../hooks/useGridPrefetch";
 import { api } from "../../api/client";
 import { WordGrid } from "../grid/WordGrid";
 import { SentenceBar } from "../grid/SentenceBar";
@@ -35,6 +36,7 @@ export function SessionScreen({ onEnd }: { onEnd: () => void }) {
   } = useSessionStore();
 
   const { speak, speaking } = useTTS();
+  const { prefetch, getCached, clearCache } = useGridPrefetch();
   const [spokenSentence, setSpokenSentence] = useState("");
 
   // Caregiver spoke (or typed): refresh grid + quick replies based on it.
@@ -42,10 +44,10 @@ export function SessionScreen({ onEnd }: { onEnd: () => void }) {
     if (busy) return;
     setLastCaregiverText(text);
     clearSentence();
+    clearCache();
     setSpokenSentence("");
     setBusy(true);
     try {
-      // Fire grid prediction and quick replies in parallel.
       const [gridRes, repliesRes] = await Promise.all([
         api.predictGrid({
           current_tokens: [],
@@ -58,6 +60,12 @@ export function SessionScreen({ onEnd }: { onEnd: () => void }) {
       ]);
       setActiveGrid(gridRes.symbols);
       setQuickReplies(repliesRes.replies);
+
+      // Speculatively prefetch the grid for the top-ranked word.
+      const top = gridRes.symbols[0];
+      if (top) {
+        prefetch([], top.word, text, [], timeOfDay(), 12);
+      }
     } catch (err) {
       console.error("Caregiver-driven prediction failed:", err);
     } finally {
@@ -65,14 +73,27 @@ export function SessionScreen({ onEnd }: { onEnd: () => void }) {
     }
   }
 
-  // Tap a word: add to sentence, fetch next grid.
+  // Tap a word: add to sentence, fetch next grid (instant if prefetched).
   async function handleTapWord(word: string) {
     if (busy) return;
+    const nextTokens = [...sentenceTokens, word];
     addToken(word);
     addExcluded([word]);
+
+    // Cache hit? Use the prefetched grid instantly — no spinner, no wait.
+    const cached = getCached(nextTokens, lastCaregiverText);
+    if (cached) {
+      setActiveGrid(cached.symbols);
+      const top = cached.symbols[0];
+      if (top) {
+        prefetch(nextTokens, top.word, lastCaregiverText, [...excludedWords, word], timeOfDay(), 12);
+      }
+      return;
+    }
+
+    // Cache miss: fetch normally.
     setBusy(true);
     try {
-      const nextTokens = [...sentenceTokens, word];
       const res = await api.predictGrid({
         current_tokens: nextTokens,
         caregiver_utterance: lastCaregiverText,
@@ -81,6 +102,10 @@ export function SessionScreen({ onEnd }: { onEnd: () => void }) {
         grid_size: 12,
       });
       setActiveGrid(res.symbols);
+      const top = res.symbols[0];
+      if (top) {
+        prefetch(nextTokens, top.word, lastCaregiverText, [...excludedWords, word], timeOfDay(), 12);
+      }
     } catch (err) {
       console.error("Grid prediction failed:", err);
     } finally {
@@ -116,6 +141,7 @@ export function SessionScreen({ onEnd }: { onEnd: () => void }) {
   function handleClear() {
     clearSentence();
     resetGrid();
+    clearCache();
     setSpokenSentence("");
   }
 
