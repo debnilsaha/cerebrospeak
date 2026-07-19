@@ -23,6 +23,9 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI):
     settings = get_settings()
     logger.info("app_starting", app=settings.app_name, environment=settings.environment)
+    from app.db.database import init_db
+
+    await init_db()
     yield
     logger.info("app_shutdown")
 

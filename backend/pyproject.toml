@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "aiosqlite>=0.20",
     "anthropic>=0.40",
     "deepgram-sdk>=3.7",
     "elevenlabs>=1.50",
@@ -13,6 +14,7 @@ dependencies = [
     "pydantic>=2.9",
     "pydantic-settings>=2.6",
     "python-multipart>=0.0.12",
+    "sqlmodel>=0.0.22",
     "structlog>=24.4",
     "tenacity>=9.0",
     "uvicorn[standard]>=0.32",

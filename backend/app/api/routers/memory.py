@@ -18,4 +18,4 @@ async def extract(payload: MemoryExtractRequest, request: Request) -> MemoryExtr
 @router.get("")
 async def get_memory() -> dict:
     """Return all currently stored facts (permanent + non-expired temporary)."""
-    return memory_service.get_all_facts()
+    return await memory_service.get_all_facts()

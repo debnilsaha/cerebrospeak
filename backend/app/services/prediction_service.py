@@ -51,7 +51,7 @@ async def predict_grid(req: GridPredictionRequest) -> GridPredictionResponse:
     client = get_anthropic_client()
 
     system_prompt = prompt.build_system_prompt()
-    known_facts = memory_service.get_facts_for_prompt()
+    known_facts = await memory_service.get_facts_for_prompt()
     user_prompt = prompt.build_user_prompt(req, known_facts=known_facts)
     tool_schema = prompt.build_tool_schema(req.grid_size)
 

@@ -1,13 +1,18 @@
-"""Memory service — extracts and stores facts about the child.
+"""Memory service — extracts facts and persists them in the database.
 
-Phase 4: in-memory store with TTL expiry for temporary facts. Phase 7 will
-replace this with persistent SQLite + semantic retrieval.
+Facts now survive restarts (SQLite). Temporary facts still expire via TTL.
+Function signatures match the previous in-memory version so callers are
+unchanged.
 """
 
 import time
 
+from sqlmodel import select
+
 from app.clients.anthropic_client import DEEP_MODEL, get_anthropic_client
 from app.core.logging import get_logger
+from app.db.database import async_session_factory
+from app.models.db import MemoryFact
 from app.models.schemas import (
     ExtractedFact,
     MemoryExtractRequest,
@@ -18,39 +23,86 @@ from app.prompts import memory_extraction as prompt
 
 logger = get_logger(__name__)
 
-# Temporary facts expire after this many seconds (12 hours).
-TEMPORARY_TTL_SECONDS = 12 * 60 * 60
-
-# In-memory stores (Phase 4). Keyed by fact key.
-_permanent_store: dict[str, str] = {
-    "likes": "apples, playing with the blue truck",
-    "dislikes": "loud noises",
-}
-_temporary_store: dict[str, dict] = {}  # key -> {"value": str, "expires_at": float}
+TEMPORARY_TTL_SECONDS = 12 * 60 * 60  # 12 hours
 
 
-def _purge_expired() -> None:
+async def _purge_expired() -> None:
+    """Delete temporary facts whose TTL has passed."""
     now = time.time()
-    expired = [k for k, v in _temporary_store.items() if v["expires_at"] <= now]
-    for k in expired:
-        del _temporary_store[k]
-    if expired:
-        logger.info("temporary_facts_expired", count=len(expired), keys=expired)
+    async with async_session_factory() as session:
+        result = await session.exec(
+            select(MemoryFact).where(
+                MemoryFact.expires_at.is_not(None), MemoryFact.expires_at <= now
+            )
+        )
+        expired = result.all()
+        for fact in expired:
+            await session.delete(fact)
+        if expired:
+            await session.commit()
+            logger.info("temporary_facts_expired", count=len(expired))
 
 
-def get_all_facts() -> dict[str, dict[str, str]]:
+async def _upsert_fact(key: str, value: str, fact_type: MemoryFactType) -> None:
+    """Insert or update a fact by key."""
+    expires = (
+        time.time() + TEMPORARY_TTL_SECONDS
+        if fact_type == MemoryFactType.TEMPORARY
+        else None
+    )
+    async with async_session_factory() as session:
+        result = await session.exec(select(MemoryFact).where(MemoryFact.key == key))
+        existing = result.first()
+        if existing:
+            existing.value = value
+            existing.fact_type = fact_type.value
+            existing.expires_at = expires
+            existing.updated_at = __import__("datetime").datetime.now(
+                __import__("datetime").timezone.utc
+            )
+            session.add(existing)
+        else:
+            session.add(
+                MemoryFact(
+                    key=key,
+                    value=value,
+                    fact_type=fact_type.value,
+                    expires_at=expires,
+                )
+            )
+        await session.commit()
+
+
+async def get_all_facts() -> dict[str, dict[str, str]]:
     """Return current permanent and (non-expired) temporary facts."""
-    _purge_expired()
-    return {
-        "permanent": dict(_permanent_store),
-        "temporary": {k: v["value"] for k, v in _temporary_store.items()},
-    }
+    await _purge_expired()
+    async with async_session_factory() as session:
+        result = await session.exec(select(MemoryFact))
+        facts = result.all()
+
+    permanent = {f.key: f.value for f in facts if f.fact_type == "permanent"}
+    temporary = {f.key: f.value for f in facts if f.fact_type == "temporary"}
+    return {"permanent": permanent, "temporary": temporary}
+
+
+async def get_facts_for_prompt() -> str:
+    """Return a compact text summary of known facts, for prompt injection."""
+    await _purge_expired()
+    async with async_session_factory() as session:
+        result = await session.exec(select(MemoryFact))
+        facts = result.all()
+
+    lines: list[str] = []
+    for f in facts:
+        suffix = " (recent)" if f.fact_type == "temporary" else ""
+        lines.append(f"- {f.key.replace('_', ' ')}: {f.value}{suffix}")
+    return "\n".join(lines)
 
 
 async def extract_facts(req: MemoryExtractRequest) -> MemoryExtractResponse:
-    """Extract facts from the exchange and store them."""
+    """Extract facts from the exchange and persist them."""
     start = time.perf_counter()
-    _purge_expired()
+    await _purge_expired()
     client = get_anthropic_client()
 
     facts: list[ExtractedFact] = []
@@ -75,15 +127,8 @@ async def extract_facts(req: MemoryExtractRequest) -> MemoryExtractResponse:
                 )
             except Exception:
                 continue
-
             facts.append(fact)
-            if fact.type == MemoryFactType.PERMANENT:
-                _permanent_store[fact.key] = fact.value
-            else:
-                _temporary_store[fact.key] = {
-                    "value": fact.value,
-                    "expires_at": time.time() + TEMPORARY_TTL_SECONDS,
-                }
+            await _upsert_fact(fact.key, fact.value, fact.type)
     except Exception as exc:
         logger.error(
             "memory_extract_failed",
@@ -102,18 +147,3 @@ async def extract_facts(req: MemoryExtractRequest) -> MemoryExtractResponse:
         model=model,
     )
     return MemoryExtractResponse(facts=facts, model=model, latency_ms=latency_ms)
-
-def get_facts_for_prompt() -> str:
-    """Return a compact text summary of known facts, for injection into prompts.
-
-    Returns an empty string if nothing is known yet.
-    """
-    _purge_expired()
-    lines: list[str] = []
-
-    for key, value in _permanent_store.items():
-        lines.append(f"- {key.replace('_', ' ')}: {value}")
-    for key, data in _temporary_store.items():
-        lines.append(f"- {key.replace('_', ' ')}: {data['value']} (recent)")
-
-    return "\n".join(lines)
