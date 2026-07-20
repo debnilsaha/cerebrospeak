@@ -97,3 +97,25 @@ export interface FindWordsResponse {
   model: string;
   latency_ms: number;
 }
+
+export interface SessionStartResponse {
+  session_id: string;
+  started_at: string;
+}
+
+export interface MessageIn {
+  sender: "caregiver" | "child";
+  text: string;
+}
+
+export interface SessionEndRequest {
+  session_id: string;
+  messages: MessageIn[];
+}
+
+export interface SessionSummaryResponse {
+  session_id: string;
+  summary: string;
+  message_count: number;
+  request_id?: string | null;
+}

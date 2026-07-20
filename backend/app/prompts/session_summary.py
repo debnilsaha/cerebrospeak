@@ -18,7 +18,9 @@ def build_system_prompt() -> str:
         "2. Anything the child expressed, wanted, or felt.\n"
         "3. Any notable new words or milestones, if evident.\n\n"
         "Keep it to 2-4 short sentences, encouraging in tone. Write it directly "
-        "to the caregiver. Do not invent details not in the transcript."
+        "to the caregiver. Do not invent details not in the transcript. Write "
+        "plain prose only — no markdown, no headings, no bold, no asterisks; just "
+        "the summary sentences."
     )
 
 

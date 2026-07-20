@@ -25,9 +25,12 @@ function timeOfDay(): string {
   return "evening";
 }
 
-export function SessionScreen({ onEnd }: { onEnd: () => void }) {
+export function SessionScreen() {
   const {
     chatHistory,
+    sessionId,
+    openSummary,
+    setSummary,
     addMessage,
     activeGrid,
     sentenceTokens,
@@ -200,6 +203,25 @@ export function SessionScreen({ onEnd }: { onEnd: () => void }) {
       .catch((err) => console.error("Memory extraction failed:", err));
   }  
 
+  async function handleEndSession() {
+    openSummary();
+    const messages = chatHistory.map((m) => ({
+      sender: m.sender,
+      text: m.text,
+    }));
+    try {
+      if (sessionId) {
+        const res = await api.endSession({ session_id: sessionId, messages });
+        setSummary(res.summary, res.message_count);
+      } else {
+        setSummary("Session ended.", messages.length);
+      }
+    } catch (err) {
+      console.error("Failed to end session:", err);
+      setSummary("Your conversation has ended.", messages.length);
+    }
+  }
+
   function handleClear() {
     clearSentence();
     resetGrid();
@@ -228,7 +250,7 @@ export function SessionScreen({ onEnd }: { onEnd: () => void }) {
             {scanningEnabled ? "⊙ Scanning ON" : "⊙ Scanning"}
           </ClayButton>
           <ClayButton
-            onClick={onEnd}
+            onClick={handleEndSession}
             ariaLabel="End session"
             style={{ padding: "10px 18px", fontSize: "0.95rem", color: "#D32F2F" }}
           >

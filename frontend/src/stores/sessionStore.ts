@@ -29,6 +29,11 @@ interface SessionState {
   // Status
   chatActive: boolean;
   busy: boolean;
+  sessionId: string | null;
+  showSummary: boolean;
+  summaryText: string;
+  summaryCount: number;
+  summaryLoading: boolean;
 
   // Conversation
   chatHistory: ChatMessage[];
@@ -43,6 +48,10 @@ interface SessionState {
   // Actions
   startSession: () => void;
   endSession: () => void;
+  setSessionId: (id: string | null) => void;
+  openSummary: () => void;
+  setSummary: (text: string, count: number) => void;
+  closeSummary: () => void;
   setBusy: (busy: boolean) => void;
   addMessage: (msg: ChatMessage) => void;
   setLastCaregiverText: (text: string) => void;
@@ -61,6 +70,11 @@ function newId(): string {
 export const useSessionStore = create<SessionState>((set) => ({
   chatActive: false,
   busy: false,
+  sessionId: null,
+  showSummary: false,
+  summaryText: "",
+  summaryCount: 0,
+  summaryLoading: false,
   chatHistory: [],
   lastCaregiverText: "",
   quickReplies: [],
@@ -90,6 +104,19 @@ export const useSessionStore = create<SessionState>((set) => ({
     }),
 
   setBusy: (busy) => set({ busy }),
+  setSessionId: (id) => set({ sessionId: id }),
+
+  openSummary: () => set({ showSummary: true, summaryLoading: true }),
+  setSummary: (text, count) =>
+    set({ summaryText: text, summaryCount: count, summaryLoading: false }),
+  closeSummary: () =>
+    set({
+      showSummary: false,
+      summaryText: "",
+      summaryCount: 0,
+      summaryLoading: false,
+      chatActive: false,
+    }),
 
   addMessage: (msg) =>
     set((s) => ({ chatHistory: [...s.chatHistory, msg] })),

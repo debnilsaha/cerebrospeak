@@ -12,6 +12,9 @@ import type {
   SentenceComposeRequest,
   SentenceComposeResponse,
   TranscriptionResponse,
+  SessionEndRequest,
+  SessionStartResponse,
+  SessionSummaryResponse,  
 } from "./types";
 
 const BASE = "/api";
@@ -77,6 +80,17 @@ export const api = {
   // Memory
   extractMemory(req: MemoryExtractRequest): Promise<MemoryExtractResponse> {
     return postJson("/memory/extract", req);
+  },
+
+  startSession(): Promise<SessionStartResponse> {
+    return fetch(`${BASE}/sessions`, { method: "POST" }).then((r) => {
+      if (!r.ok) throw new ApiError("Failed to start session", r.status);
+      return r.json();
+    });
+  },
+
+  endSession(req: SessionEndRequest): Promise<SessionSummaryResponse> {
+    return postJson("/sessions/end", req);
   },
 
   // Speech: transcribe (audio file -> text)
