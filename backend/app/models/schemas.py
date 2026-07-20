@@ -152,3 +152,28 @@ class FindWordsResponse(BaseModel):
     request_id: str | None = None
     model: str = ""
     latency_ms: float = 0.0
+
+
+# ─────────────────────────── Sessions ───────────────────────────
+class MessageIn(BaseModel):
+    """A message to persist."""
+
+    sender: str = Field(..., pattern="^(caregiver|child)$")
+    text: str = Field(..., min_length=1, max_length=1000)
+
+
+class SessionStartResponse(BaseModel):
+    session_id: str
+    started_at: str
+
+
+class SessionEndRequest(BaseModel):
+    session_id: str
+    messages: list[MessageIn] = Field(default_factory=list)
+
+
+class SessionSummaryResponse(BaseModel):
+    session_id: str
+    summary: str
+    message_count: int
+    request_id: str | None = None

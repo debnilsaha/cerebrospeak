@@ -10,7 +10,7 @@ from app.services import transcription_service, tts_service
 router = APIRouter(prefix="/speech", tags=["speech"])
 
 
-@router.post("/transcribe", response_model=TranscriptionResponse)
+@router.post("/transcribe", response_model=TranscriptionResponse, operation_id="speech_transcribe")
 async def transcribe(
     request: Request, file: UploadFile = File(...)
 ) -> TranscriptionResponse:
@@ -22,7 +22,7 @@ async def transcribe(
     return result
 
 
-@router.post("/synthesize")
+@router.post("/synthesize", operation_id="speech_synthesize")
 async def synthesize(payload: SynthesizeRequest, request: Request) -> Response:
     """Synthesize text into speech and return MP3 audio.
 
@@ -42,7 +42,7 @@ async def synthesize(payload: SynthesizeRequest, request: Request) -> Response:
     )
 
 
-@router.get("/audio/{key}")
+@router.get("/audio/{key}", operation_id="speech_get_audio")
 async def get_audio(key: str) -> Response:
     """Serve previously-synthesized audio by cache key (for instant replay)."""
     audio = tts_service.get_cached_audio(key)
