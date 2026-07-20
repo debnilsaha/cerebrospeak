@@ -119,3 +119,16 @@ export interface SessionSummaryResponse {
   message_count: number;
   request_id?: string | null;
 }
+
+export interface SessionRecord {
+  id: string;
+  started_at: string | null;
+  ended_at: string | null;
+  summary: string | null;
+  message_count: number;
+}
+
+export interface MemoryFacts {
+  permanent: Record<string, string>;
+  temporary: Record<string, string>;
+}

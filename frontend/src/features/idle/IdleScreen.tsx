@@ -3,9 +3,10 @@ import { ClayButton } from "../../components/ui/ClayButton";
 
 interface IdleScreenProps {
   onStart: () => void;
+  onOpenDashboard: () => void;
 }
 
-export function IdleScreen({ onStart }: IdleScreenProps) {
+export function IdleScreen({ onStart, onOpenDashboard }: IdleScreenProps) {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-10 px-6">
       <motion.div
@@ -42,6 +43,25 @@ export function IdleScreen({ onStart }: IdleScreenProps) {
           💬 Start Conversation
         </ClayButton>
       </motion.div>
+      <motion.button
+        type="button"
+        onClick={onOpenDashboard}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.4 }}
+        aria-label="Open caregiver dashboard"
+        style={{
+          border: "none",
+          background: "transparent",
+          color: "#8A8AA0",
+          fontSize: "1rem",
+          fontWeight: 600,
+          cursor: "pointer",
+          textDecoration: "underline",
+        }}
+      >
+        📊 Caregiver Dashboard
+      </motion.button>      
     </div>
   );
 }

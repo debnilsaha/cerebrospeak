@@ -84,3 +84,24 @@ async def end_session(session_id: str, messages: list[MessageIn]) -> SessionSumm
     return SessionSummaryResponse(
         session_id=session_id, summary=summary, message_count=len(messages)
     )
+
+
+async def list_sessions(limit: int = 50) -> list[dict]:
+    """Return recent ended sessions (most recent first)."""
+    async with async_session_factory() as db:
+        result = await db.exec(
+            select(Session).order_by(Session.started_at.desc()).limit(limit)
+        )
+        sessions = result.all()
+
+    return [
+        {
+            "id": s.id,
+            "started_at": s.started_at.isoformat() if s.started_at else None,
+            "ended_at": s.ended_at.isoformat() if s.ended_at else None,
+            "summary": s.summary,
+            "message_count": s.message_count,
+        }
+        for s in sessions
+        if s.summary  # only show sessions that were actually completed
+    ]

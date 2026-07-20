@@ -15,6 +15,8 @@ import type {
   SessionEndRequest,
   SessionStartResponse,
   SessionSummaryResponse,  
+  MemoryFacts,
+  SessionRecord,
 } from "./types";
 
 const BASE = "/api";
@@ -92,6 +94,40 @@ export const api = {
   endSession(req: SessionEndRequest): Promise<SessionSummaryResponse> {
     return postJson("/sessions/end", req);
   },
+
+  listSessions(): Promise<SessionRecord[]> {
+    return fetch(`${BASE}/sessions`).then((r) => {
+      if (!r.ok) throw new ApiError("Failed to list sessions", r.status);
+      return r.json();
+    });
+  },
+
+  getMemory(): Promise<MemoryFacts> {
+    return fetch(`${BASE}/memory`).then((r) => {
+      if (!r.ok) throw new ApiError("Failed to load memory", r.status);
+      return r.json();
+    });
+  },
+
+  deleteMemoryFact(key: string): Promise<{ deleted: string }> {
+    return fetch(`${BASE}/memory/${encodeURIComponent(key)}`, {
+      method: "DELETE",
+    }).then((r) => {
+      if (!r.ok) throw new ApiError("Failed to delete fact", r.status);
+      return r.json();
+    });
+  },
+
+  updateMemoryFact(key: string, value: string): Promise<{ updated: string; value: string }> {
+    return fetch(`${BASE}/memory/${encodeURIComponent(key)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ value }),
+    }).then((r) => {
+      if (!r.ok) throw new ApiError("Failed to update fact", r.status);
+      return r.json();
+    });
+  },  
 
   // Speech: transcribe (audio file -> text)
   async transcribe(audio: Blob): Promise<TranscriptionResponse> {

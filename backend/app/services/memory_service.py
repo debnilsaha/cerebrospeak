@@ -147,3 +147,30 @@ async def extract_facts(req: MemoryExtractRequest) -> MemoryExtractResponse:
         model=model,
     )
     return MemoryExtractResponse(facts=facts, model=model, latency_ms=latency_ms)
+
+
+async def delete_fact(key: str) -> bool:
+    """Delete a fact by key. Returns True if something was deleted."""
+    async with async_session_factory() as session:
+        result = await session.exec(select(MemoryFact).where(MemoryFact.key == key))
+        fact = result.first()
+        if fact:
+            await session.delete(fact)
+            await session.commit()
+            logger.info("memory_fact_deleted", key=key)
+            return True
+    return False
+
+
+async def update_fact(key: str, value: str) -> bool:
+    """Update a fact's value by key. Returns True if updated."""
+    async with async_session_factory() as session:
+        result = await session.exec(select(MemoryFact).where(MemoryFact.key == key))
+        fact = result.first()
+        if fact:
+            fact.value = value
+            session.add(fact)
+            await session.commit()
+            logger.info("memory_fact_updated", key=key)
+            return True
+    return False

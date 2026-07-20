@@ -24,3 +24,9 @@ async def end_session(payload: SessionEndRequest, request: Request) -> SessionSu
     result = await session_service.end_session(payload.session_id, payload.messages)
     result.request_id = getattr(request.state, "request_id", None)
     return result
+
+
+@router.get("")
+async def list_sessions() -> list[dict]:
+    """List recent completed sessions with summaries."""
+    return await session_service.list_sessions()

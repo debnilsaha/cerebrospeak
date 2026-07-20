@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useSessionStore } from "./stores/sessionStore";
 import { IdleScreen } from "./features/idle/IdleScreen";
 import { SessionScreen } from "./features/session/SessionScreen";
 import { SessionSummary } from "./features/summary/SessionSummary";
+import { Dashboard } from "./features/dashboard/Dashboard";
 import { api } from "./api/client";
 
 function App() {
@@ -14,9 +16,10 @@ function App() {
   const setSessionId = useSessionStore((s) => s.setSessionId);
   const closeSummary = useSessionStore((s) => s.closeSummary);
 
+  const [showDashboard, setShowDashboard] = useState(false);
+
   async function handleStart() {
     startSession();
-    // Create the backend session (non-blocking for the UI).
     try {
       const res = await api.startSession();
       setSessionId(res.session_id);
@@ -36,8 +39,14 @@ function App() {
     );
   }
 
+  if (showDashboard) {
+    return <Dashboard onBack={() => setShowDashboard(false)} />;
+  }
+
   if (!chatActive) {
-    return <IdleScreen onStart={handleStart} />;
+    return (
+      <IdleScreen onStart={handleStart} onOpenDashboard={() => setShowDashboard(true)} />
+    );
   }
 
   return <SessionScreen />;
