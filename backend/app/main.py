@@ -61,7 +61,6 @@ def create_app() -> FastAPI:
     app.include_router(sentence.router)
     app.include_router(memory.router)
     app.include_router(speech.router)
-    app.include_router(speech.router)
     app.include_router(sessions.router)
 
     logger.info("app_configured", cors_origins=settings.cors_origins_list)
