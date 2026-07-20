@@ -16,6 +16,7 @@ import { ClayButton } from "../../components/ui/ClayButton";
 import { useEffect } from "react";
 import { useSettingsStore } from "../../stores/settingsStore";
 import { useSwitchScanning } from "../../hooks/useSwitchScanning";
+import { useWakeLock } from "../../hooks/useWakeLock";
 
 function timeOfDay(): string {
   const h = new Date().getHours();
@@ -50,6 +51,8 @@ export function SessionScreen({ onEnd }: { onEnd: () => void }) {
   const [sayAnythingOpen, setSayAnythingOpen] = useState(false);
   const scanningEnabled = useSettingsStore((s) => s.scanningEnabled);
   const scanSpeedMs = useSettingsStore((s) => s.scanSpeedMs);
+
+  useWakeLock(true);
 
   const { highlightedIndices, activate } = useSwitchScanning({
     enabled: scanningEnabled && !busy && !sayAnythingOpen,
