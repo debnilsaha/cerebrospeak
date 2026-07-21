@@ -18,6 +18,7 @@ import { useEffect } from "react";
 import { useSettingsStore } from "../../stores/settingsStore";
 import { useSwitchScanning } from "../../hooks/useSwitchScanning";
 import { useWakeLock } from "../../hooks/useWakeLock";
+import { SettingsSheet } from "../settings/SettingsSheet";
 
 function timeOfDay(): string {
   const h = new Date().getHours();
@@ -54,6 +55,7 @@ export function SessionScreen() {
   const [spokenSentence, setSpokenSentence] = useState("");
   const [sayAnythingOpen, setSayAnythingOpen] = useState(false);
   const [gridLoading, setGridLoading] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const scanningEnabled = useSettingsStore((s) => s.scanningEnabled);
   const scanSpeedMs = useSettingsStore((s) => s.scanSpeedMs);
 
@@ -244,16 +246,11 @@ export function SessionScreen() {
         </h1>
         <div className="flex items-center gap-2">
           <ClayButton
-            onClick={() => useSettingsStore.getState().setScanningEnabled(!scanningEnabled)}
-            ariaLabel="Toggle switch scanning"
-            style={{
-              padding: "10px 16px",
-              fontSize: "0.9rem",
-              color: scanningEnabled ? "#7B1FA2" : "#8A8AA0",
-              background: scanningEnabled ? "#F3E5F5" : "var(--clay-surface)",
-            }}
+            onClick={() => setSettingsOpen(true)}
+            ariaLabel="Open settings"
+            style={{ padding: "10px 16px", fontSize: "0.95rem", color: "#7B1FA2" }}
           >
-            {scanningEnabled ? "⊙ Scanning ON" : "⊙ Scanning"}
+            ⚙️
           </ClayButton>
           <ClayButton
             onClick={handleEndSession}
@@ -327,6 +324,9 @@ export function SessionScreen() {
           ➕ Say Anything
         </ClayButton>
       </div>
+
+      {/* Settings */}
+      <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
       {/* Say Anything panel */}
       <SayAnything
