@@ -6,6 +6,7 @@ import { useGridPrefetch } from "../../hooks/useGridPrefetch";
 import { api } from "../../api/client";
 import { WordGrid } from "../grid/WordGrid";
 import { SentenceBar } from "../grid/SentenceBar";
+import { GridSkeleton } from "../grid/GridSkeleton";
 import { CaregiverInput } from "./CaregiverInput";
 import { QuickReplies } from "./QuickReplies";
 import { ChatPanel } from "../chat/ChatPanel";
@@ -52,6 +53,7 @@ export function SessionScreen() {
   const { prefetch, getCached, clearCache } = useGridPrefetch();
   const [spokenSentence, setSpokenSentence] = useState("");
   const [sayAnythingOpen, setSayAnythingOpen] = useState(false);
+  const [gridLoading, setGridLoading] = useState(false);
   const scanningEnabled = useSettingsStore((s) => s.scanningEnabled);
   const scanSpeedMs = useSettingsStore((s) => s.scanSpeedMs);
 
@@ -90,6 +92,7 @@ export function SessionScreen() {
     clearCache();
     setSpokenSentence("");
     setBusy(true);
+    setGridLoading(true);
     try {
       const [gridRes, repliesRes] = await Promise.all([
         api.predictGrid({
@@ -113,6 +116,7 @@ export function SessionScreen() {
       console.error("Caregiver-driven prediction failed:", err);
     } finally {
       setBusy(false);
+      setGridLoading(false);
     }
   }
 
@@ -153,6 +157,7 @@ export function SessionScreen() {
       console.error("Grid prediction failed:", err);
     } finally {
       setBusy(false);
+      setGridLoading(false);
     }
   }
 
@@ -176,6 +181,7 @@ export function SessionScreen() {
       console.error("Compose/speak failed:", err);
     } finally {
       setBusy(false);
+      setGridLoading(false);
     }
   }
 
@@ -335,12 +341,16 @@ export function SessionScreen() {
 
       {/* Word grid */}
       <div style={{ position: "relative" }}>
-        <WordGrid
-          words={activeGrid}
-          onTapWord={handleTapWord}
-          disabled={busy}
-          highlightedIndices={highlightedIndices}
-        />
+        {gridLoading ? (
+          <GridSkeleton count={12} />
+        ) : (
+          <WordGrid
+            words={activeGrid}
+            onTapWord={handleTapWord}
+            disabled={busy}
+            highlightedIndices={highlightedIndices}
+          />
+        )}
         {busy && (
           <div
             style={{
