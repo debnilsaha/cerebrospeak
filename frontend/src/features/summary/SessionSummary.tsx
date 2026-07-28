@@ -1,6 +1,15 @@
 import { motion } from "framer-motion";
 import { ClayButton } from "../../components/ui/ClayButton";
 
+function cleanSummary(text: string | null): string {
+  if (!text) return "";
+  return text
+    .replace(/\*\*/g, "")      // remove bold markers
+    .replace(/^#+\s*/gm, "")   // remove markdown headings
+    .replace(/^\s*Session Summary\s*/i, "") // drop a leading "Session Summary" label
+    .trim();
+}
+
 interface SessionSummaryProps {
   summary: string;
   messageCount: number;
@@ -55,7 +64,7 @@ export function SessionSummary({ summary, messageCount, loading, onDone }: Sessi
               fontFamily: "var(--font-chat)",
             }}
           >
-            {summary}
+            {cleanSummary(summary)}
           </p>
         )}
       </motion.div>

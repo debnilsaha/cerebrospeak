@@ -4,6 +4,15 @@ import { api } from "../../api/client";
 import type { SessionRecord, MemoryFacts } from "../../api/types";
 import { ClayButton } from "../../components/ui/ClayButton";
 
+function cleanSummary(text: string | null): string {
+  if (!text) return "";
+  return text
+    .replace(/\*\*/g, "")      // remove bold markers
+    .replace(/^#+\s*/gm, "")   // remove markdown headings
+    .replace(/^\s*Session Summary\s*/i, "") // drop a leading "Session Summary" label
+    .trim();
+}
+
 interface DashboardProps {
   onBack: () => void;
 }
@@ -148,7 +157,7 @@ export function Dashboard({ onBack }: DashboardProps) {
                       </span>
                     </div>
                     <p style={{ color: "#2A2A3C", lineHeight: 1.5, fontFamily: "var(--font-chat)" }}>
-                      {s.summary}
+                      {cleanSummary(s.summary)}
                     </p>
                   </motion.div>
                 ))}
