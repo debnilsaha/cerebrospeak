@@ -34,6 +34,11 @@ class Settings(BaseSettings):
     # ─── Database ───
     database_url: str = Field(default="sqlite+aiosqlite:///./cerebrospeak.db")
 
+    # ─── Demo access gate ───
+    # A shared passphrase for the public demo. If empty, no gate is enforced
+    # (useful for local dev). Set this in production to protect API credits.
+    demo_password: str = Field(default="")
+
     # ─── AI Provider API Keys ───
     # Optional for now (Phase 1). We wire these in as we build each service,
     # and each client checks for its own key at call time.

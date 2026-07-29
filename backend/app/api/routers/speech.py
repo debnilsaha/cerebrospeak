@@ -1,13 +1,20 @@
 """Speech endpoints — transcription (STT) and synthesis (TTS)."""
 
-from fastapi import APIRouter, File, Request, Response, UploadFile
+from fastapi import APIRouter, Depends, File, Request, Response, UploadFile
+
+from app.api.deps import require_demo_access
+
 from fastapi.responses import Response as FastAPIResponse
 
 from app.core.exceptions import NotFoundError
 from app.models.schemas import SynthesizeRequest, TranscriptionResponse
 from app.services import transcription_service, tts_service
 
-router = APIRouter(prefix="/speech", tags=["speech"])
+router = APIRouter(
+    prefix="/speech", 
+    tags=["speech"],
+    dependencies=[Depends(require_demo_access)],
+)
 
 
 @router.post("/transcribe", response_model=TranscriptionResponse, operation_id="speech_transcribe")

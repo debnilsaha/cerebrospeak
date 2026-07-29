@@ -1,13 +1,20 @@
 """Memory endpoints — extract facts, view, edit, and delete stored memory."""
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
+
+from app.api.deps import require_demo_access
+
 from pydantic import BaseModel
 
 from app.core.exceptions import NotFoundError
 from app.models.schemas import MemoryExtractRequest, MemoryExtractResponse
 from app.services import memory_service
 
-router = APIRouter(prefix="/memory", tags=["memory"])
+router = APIRouter(
+    prefix="/memory", 
+    tags=["memory"],
+    dependencies=[Depends(require_demo_access)],
+)
 
 
 class UpdateFactRequest(BaseModel):

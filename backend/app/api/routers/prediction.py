@@ -1,6 +1,8 @@
 """Prediction endpoints (grid prediction + quick replies + word finder)."""
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
+
+from app.api.deps import require_demo_access
 
 from app.core.logging import get_logger
 from app.models.schemas import (
@@ -14,7 +16,11 @@ from app.models.schemas import (
 from app.services import prediction_service
 
 logger = get_logger(__name__)
-router = APIRouter(prefix="/predict", tags=["prediction"])
+router = APIRouter(
+    prefix="/predict",
+    tags=["prediction"],
+    dependencies=[Depends(require_demo_access)],
+)
 
 
 @router.post("/grid", response_model=GridPredictionResponse)

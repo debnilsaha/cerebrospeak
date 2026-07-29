@@ -18,6 +18,12 @@ import type {
   MemoryFacts,
   SessionRecord,
 } from "./types";
+import { useSettingsStore } from "../stores/settingsStore";
+
+function authHeaders(): Record<string, string> {
+  const pw = useSettingsStore.getState().demoPassword;
+  return pw ? { "X-Demo-Password": pw } : {};
+}
 
 const BASE = "/api";
 
@@ -36,7 +42,7 @@ class ApiError extends Error {
 async function postJson<TReq, TRes>(path: string, body: TReq): Promise<TRes> {
   const res = await fetch(`${BASE}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(body),
   });
   const requestId = res.headers.get("X-Request-ID") ?? undefined;
@@ -61,6 +67,17 @@ export const api = {
     return res.json();
   },
 
+  verifyAccess(password: string): Promise<{ valid: boolean; gate_enabled: boolean }> {
+    return fetch(`${BASE}/health/verify-access`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    }).then((r) => {
+      if (!r.ok) throw new ApiError("Verify failed", r.status);
+      return r.json();
+    });
+  }, 
+  
   // Prediction
   predictGrid(req: GridPredictionRequest): Promise<GridPredictionResponse> {
     return postJson("/predict/grid", req);
@@ -85,7 +102,7 @@ export const api = {
   },
 
   startSession(): Promise<SessionStartResponse> {
-    return fetch(`${BASE}/sessions`, { method: "POST" }).then((r) => {
+    return fetch(`${BASE}/sessions`, { method: "POST", headers: { ...authHeaders() } }).then((r) => {
       if (!r.ok) throw new ApiError("Failed to start session", r.status);
       return r.json();
     });
@@ -96,14 +113,14 @@ export const api = {
   },
 
   listSessions(): Promise<SessionRecord[]> {
-    return fetch(`${BASE}/sessions`).then((r) => {
+    return fetch(`${BASE}/sessions`, { headers: { ...authHeaders() } }).then((r) => {
       if (!r.ok) throw new ApiError("Failed to list sessions", r.status);
       return r.json();
     });
   },
 
   getMemory(): Promise<MemoryFacts> {
-    return fetch(`${BASE}/memory`).then((r) => {
+    return fetch(`${BASE}/memory`, { headers: { ...authHeaders() } }).then((r) => {
       if (!r.ok) throw new ApiError("Failed to load memory", r.status);
       return r.json();
     });
@@ -112,6 +129,7 @@ export const api = {
   deleteMemoryFact(key: string): Promise<{ deleted: string }> {
     return fetch(`${BASE}/memory/${encodeURIComponent(key)}`, {
       method: "DELETE",
+      headers: { ...authHeaders() },
     }).then((r) => {
       if (!r.ok) throw new ApiError("Failed to delete fact", r.status);
       return r.json();
@@ -121,7 +139,7 @@ export const api = {
   updateMemoryFact(key: string, value: string): Promise<{ updated: string; value: string }> {
     return fetch(`${BASE}/memory/${encodeURIComponent(key)}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({ value }),
     }).then((r) => {
       if (!r.ok) throw new ApiError("Failed to update fact", r.status);
@@ -135,6 +153,7 @@ export const api = {
     form.append("file", audio, "recording.webm");
     const res = await fetch(`${BASE}/speech/transcribe`, {
       method: "POST",
+      headers: { ...authHeaders() },
       body: form,
     });
     const requestId = res.headers.get("X-Request-ID") ?? undefined;
@@ -148,7 +167,7 @@ export const api = {
   async synthesize(text: string): Promise<string> {
     const res = await fetch(`${BASE}/speech/synthesize`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({ text }),
     });
     if (!res.ok) {

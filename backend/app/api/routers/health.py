@@ -45,3 +45,13 @@ async def health_providers() -> dict:
 
     all_ok = all(v in ("ok", "not_configured") for v in providers.values())
     return {"status": "ok" if all_ok else "degraded", "providers": providers}
+
+
+@router.post("/health/verify-access")
+async def verify_access(payload: dict) -> dict:
+    """Check whether a submitted demo password is correct."""
+    settings = get_settings()
+    if not settings.demo_password:
+        return {"valid": True, "gate_enabled": False}
+    submitted = str(payload.get("password", ""))
+    return {"valid": submitted == settings.demo_password, "gate_enabled": True}
