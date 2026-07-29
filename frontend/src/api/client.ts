@@ -25,7 +25,11 @@ function authHeaders(): Record<string, string> {
   return pw ? { "X-Demo-Password": pw } : {};
 }
 
-const BASE = "/api";
+// In production, VITE_API_URL points to the deployed backend.
+// In local dev, it's undefined, so we fall back to the Vite proxy ("/api").
+const BASE = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}`
+  : "/api";
 
 class ApiError extends Error {
   status: number;
